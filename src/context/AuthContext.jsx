@@ -1,0 +1,185 @@
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import PropTypes from 'prop-types';
+import { authAPI } from "../lib/api.js";
+import { generateAndStoreKeyPair, getStoredPublicKeyBase64 } from "../lib/crypto.js";
+import { clearAuthSession, getStoredUserRaw, getToken, pinAuthToThisTab, setAuthSession, setStoredUser } from "../lib/authStorage.js";
+
+const AuthContext = createContext(null);
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Check for existing token on mount
+  useEffect(() => {
+    const initAuth = async () => {
+      pinAuthToThisTab();
+      const token = getToken();
+      const storedUser = getStoredUserRaw();
+
+      if (token && storedUser) {
+        try {
+          // Verify token is still valid
+          const response = await authAPI.getMe();
+          const userData = response.data?.user || JSON.parse(storedUser);
+          setUser(userData);
+          setIsAuthenticated(true);
+          setStoredUser(userData);
+          await ensureKeyPair(userData);
+        } catch {
+          // Token invalid — clear auth
+          clearAuthSession();
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+      }
+      setIsLoading(false);
+    };
+
+    initAuth();
+  }, []);
+
+  /**
+   * Login — calls real API, stores JWT + user data.
+   */
+  const login = useCallback(async (email, password) => {
+    try {
+      if (!email || !password) {
+        return { success: false, error: 'البريد الإلكتروني وكلمة المرور مطلوبان' };
+      }
+
+      const response = await authAPI.login({ email, password });
+      const { token, user: userData } = response.data;
+
+      // Store JWT
+      setAuthSession(token, userData);
+
+      setUser(userData);
+      setIsAuthenticated(true);
+
+      // Ensure E2EE keys exist and match this browser
+      await ensureKeyPair(userData);
+
+      return { success: true, user: userData };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || 'حدث خطأ أثناء تسجيل الدخول',
+      };
+    }
+  }, []);
+
+  /**
+   * Register — calls real API, generates E2EE key pair, stores JWT.
+   */
+  const register = useCallback(async (name, email, password, role = 'student') => {
+    try {
+      if (!name || !email || !password) {
+        return { success: false, error: 'جميع الحقول مطلوبة' };
+      }
+
+      if (password.length < 6) {
+        return { success: false, error: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل' };
+      }
+
+      const response = await authAPI.register({ name, email, password, role });
+      const { token, user: userData } = response.data;
+
+      // Store JWT
+      setAuthSession(token, userData);
+
+      setUser(userData);
+      setIsAuthenticated(true);
+
+      // Generate E2EE key pair on registration
+      await ensureKeyPair(userData);
+
+      return { success: true, user: userData };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || 'حدث خطأ أثناء التسجيل',
+      };
+    }
+  }, []);
+
+  /**
+   * Ensure E2EE key pair exists, generate if not.
+   */
+  const ensureKeyPair = async (userData) => {
+    try {
+      // Keep the server public key equal to the private key in THIS browser.
+      // Otherwise the other person wraps messages for a key we cannot open.
+      let publicKey = await getStoredPublicKeyBase64(userData.id);
+      if (!publicKey) {
+        publicKey = await generateAndStoreKeyPair(userData.id);
+      }
+      const serverKey = userData.public_key || userData.publicKey || '';
+      if (serverKey !== publicKey) {
+        const { userAPI } = await import('../lib/api.js');
+        await userAPI.updatePublicKey(publicKey);
+      }
+    } catch (err) {
+      console.warn('Key pair sync failed:', err);
+    }
+  };
+
+  /**
+   * Logout — clear JWT, user data, and disconnect socket.
+   */
+  const logout = useCallback(() => {
+    clearAuthSession();
+    setUser(null);
+    setIsAuthenticated(false);
+
+    // Disconnect socket if connected
+    import('../lib/socket.js').then(({ disconnectSocket }) => {
+      disconnectSocket();
+    });
+  }, []);
+
+  const updateUser = useCallback((userData) => {
+    if (!userData) return;
+    setUser(userData);
+    setStoredUser(userData);
+  }, []);
+
+  const refreshUser = useCallback(async () => {
+    const response = await authAPI.getMe();
+    const userData = response.data?.user;
+    if (userData) updateUser(userData);
+    return userData;
+  }, [updateUser]);
+
+  const value = {
+    user,
+    isAuthenticated,
+    isLoading,
+    login,
+    register,
+    logout,
+    updateUser,
+    refreshUser,
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+AuthProvider.propTypes = {
+  children: PropTypes.node.isRequired,
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};
+
+export default AuthContext;
