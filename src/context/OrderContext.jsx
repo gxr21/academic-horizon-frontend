@@ -1,11 +1,16 @@
 import { createContext, useContext } from "react";
 import PropTypes from 'prop-types';
+import { useAuth } from "./AuthContext";
 import { useOrders as useOrdersQuery, useCreateOrder, useUpdateOrderStatus } from "../hooks/useOrders.js";
 
 const OrderContext = createContext(null);
 
 export const OrderProvider = ({ children }) => {
-  const { data: ordersData, isLoading, error, refetch } = useOrdersQuery();
+  const { isAuthenticated } = useAuth();
+  const { data: ordersData, isLoading, error, refetch } = useOrdersQuery(
+    {},
+    { enabled: isAuthenticated }
+  );
   const createOrderMutation = useCreateOrder();
   const updateStatusMutation = useUpdateOrderStatus();
 

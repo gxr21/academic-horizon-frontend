@@ -31,12 +31,18 @@ api.interceptors.response.use(
       const { status, data } = error.response;
 
       if (status === 401 || (status === 403 && data?.error?.code === 'ACCOUNT_RESTRICTED')) {
-        clearAuthSession();
-        if (status === 403 && data?.error?.message) {
-          sessionStorage.setItem('authError', data.error.message);
-        }
-        if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
-          window.location.href = '/login';
+        const requestUrl = String(error.config?.url || '');
+        const isLoginOrRegister =
+          requestUrl.includes('/api/auth/login') || requestUrl.includes('/api/auth/register');
+
+        if (!isLoginOrRegister) {
+          clearAuthSession();
+          if (status === 403 && data?.error?.message) {
+            sessionStorage.setItem('authError', data.error.message);
+          }
+          if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
+            window.location.href = '/login';
+          }
         }
       }
 

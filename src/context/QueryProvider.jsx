@@ -4,12 +4,18 @@ import PropTypes from 'prop-types';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 2,
+      retry: (failureCount, error) => {
+        if ([401, 403, 404, 429].includes(error?.status)) return false;
+        return failureCount < 2;
+      },
       staleTime: 5 * 60 * 1000, // 5 minutes
       refetchOnWindowFocus: false,
     },
     mutations: {
-      retry: 1,
+      retry: (failureCount, error) => {
+        if ([401, 403, 404, 429].includes(error?.status)) return false;
+        return failureCount < 1;
+      },
     },
   },
 });
