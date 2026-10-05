@@ -18,3 +18,13 @@ npm run dev
 ```bash
 npm run build
 ```
+
+## Render (مسارات React Router)
+
+الموقع صفحة واحدة: المسارات مثل `/login` و`/home` ليست ملفات على السيرفر.
+في الخدمة على Render افتح **Redirects/Rewrites** وأضف:
+
+- Source: `/*`
+- Destination: `/index.html`
+- Action: **Rewrite**
+
