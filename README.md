@@ -21,10 +21,14 @@ npm run build
 
 ## Render (مسارات React Router)
 
-الموقع صفحة واحدة: المسارات مثل `/login` و`/home` ليست ملفات على السيرفر.
-في الخدمة على Render افتح **Redirects/Rewrites** وأضف:
+إذا الصفحة تختفي بعد Refresh، القاعدة الحالية غالباً ترجع ملفاً فارغاً.
 
-- Source: `/*`
-- Destination: `/index.html`
-- Action: **Rewrite**
+في الخدمة افتح **Redirects/Rewrites**:
+
+1. احذف أي قاعدة قديمة على `/*`
+2. أضف قاعدة جديدة بالضبط:
+   - Source Path: `/*`
+   - Destination Path: `/index.html` (مع الشرطة في البداية)
+   - Action: **Rewrite** وليس Redirect
+3. Save ثم انتظر دقيقة وجرب Ctrl+F5
 
