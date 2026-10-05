@@ -131,7 +131,7 @@ function LoginPage () {
       </div>
       {/* === الجانب الايمن === */}
       <div className="bg-academic-blue rounded-r-3xl  flex flex-col p-12 flex-1 h-full text-white relative overflow-hidden" dir="rtl">
-        <img src='assets/unnamed.png' className='absolute inset-0 w-full h-full object-cover -z-1 opacity-5'/>
+        <img src='/assets/unnamed.png' alt="" className='absolute inset-0 w-full h-full object-cover -z-1 opacity-5'/>
         <div className="flex items-center gap-3 mb-16 logo-container">
           <span className="text-3xl" style={{ color: '#E9C176' }}>
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-10">

@@ -12,6 +12,7 @@ npm run dev
 
 الافتراضي: `http://localhost:5173`  
 الـ API: عيّن `VITE_API_URL` إلى عنوان الباكند (محلياً `http://localhost:3000`).
+على Render حالياً: `https://academichorizonapp.fyi`
 
 ## البناء
 

@@ -6,7 +6,7 @@ import FooterHome from "../../components/footer/footerHome";
 import { Link } from "react-router-dom";
 const academicBlue = '#1A5276';
 const academicGreen = "#008080";
-const img_academic = 'assets/academic_envirment.png'
+const img_academic = '/assets/academic_envirment.png'
 function HomePage() {
     const { isAuthenticated } = useAuth();
     

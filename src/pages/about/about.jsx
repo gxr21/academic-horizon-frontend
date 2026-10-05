@@ -7,7 +7,7 @@ import HeaderHome from "../../components/header/headerHome.jsx";
 import { useAuth } from "../../context/AuthContext";
 import ClickSpark from "../../components/animate/clicker.jsx";
 const academicBlue = '#1A5276';
-const img_comm = 'assets/img_communcate.png'
+const img_comm = '/assets/img_communcate.png'
 function AboutPage () {
     const { isAuthenticated } = useAuth();
     

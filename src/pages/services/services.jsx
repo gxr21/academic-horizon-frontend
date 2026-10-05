@@ -11,7 +11,7 @@ import PurchaseCheckout from "../../components/purchase/PurchaseCheckout";
 import { servicesAPI } from "../../lib/api";
 
 const academicBlue = '#1A5276';
-const img_academic = 'assets/Academic workspace with laptop and books.png'
+const img_academic = '/assets/Academic workspace with laptop and books.png'
 
 function ServicesPage () {
     const navigate = useNavigate();
