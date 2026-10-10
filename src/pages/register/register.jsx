@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Input from '../../components/input/input';
 import Button from '../../components/buttons/button';
+import GoogleSignInButton from '../../components/google/GoogleSignInButton';
 const img_user = [
   'https://randomuser.me/api/portraits/women/44.jpg',
   'https://randomuser.me/api/portraits/men/45.jpg',
@@ -16,7 +17,19 @@ function RegisterPage() {
   const [error, setError] = useState('');
   const role = 'student';
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const { register, loginWithGoogle } = useAuth();
+  const handleGoogle = async (credential) => {
+    setError('');
+    const result = await loginWithGoogle(credential);
+    if (!result.success) {
+      setError(result.error);
+      return;
+    }
+    // An existing provider/admin who signs in here still lands on their own page
+    if (result.user.role === 'provider') navigate('/dashboard');
+    else if (result.user.role === 'admin') navigate('/admin');
+    else navigate('/home');
+  };
   const handleRegister = async () => {
     setError('');
     if (!name || !email || !password) {
@@ -36,9 +49,9 @@ function RegisterPage() {
     }
   };
   return (
-    <div className="flex justify-center items-center w-full h-screen bg-gray-100 font-tajawal">
+    <div className="flex justify-center items-center w-full min-h-screen py-8 bg-gray-100 font-tajawal">
       {/* الحاوية الرئيسية */}
-      <div className="register-container w-[1000px] h-[750px] bg-white rounded-3xl shadow-2xl flex overflow-hidden">
+      <div className="register-container w-[1000px] min-h-[750px] bg-white rounded-3xl shadow-2xl flex overflow-hidden">
         {/* === الجانب الأيسر (نموذج التسجيل) === */}
         <div className="register-side flex-1 flex flex-col justify-center items-center p-12 bg-white" dir="rtl">
           <div className="w-full max-w-sm">
@@ -107,6 +120,12 @@ function RegisterPage() {
                 className="bg-academic-blue text-white w-full py-3 rounded-xl mt-4 font-bold hover:opacity-90 transition shadow-lg">
                 إنشاء حساب
               </Button>
+              <div className="flex items-center gap-3 mt-1" dir="rtl">
+                <span className="flex-1 h-px bg-gray-200" />
+                <span className="text-sm text-gray-400">أو</span>
+                <span className="flex-1 h-px bg-gray-200" />
+              </div>
+              <GoogleSignInButton text="signup_with" width={384} onCredential={handleGoogle} />
             </div>
             <p className="mt-8 text-center text-gray-500 text-sm">
               لديك حساب بالفعل؟ <Link to="/login" className="text-academic-blue font-bold">تسجيل الدخول</Link>
@@ -114,7 +133,7 @@ function RegisterPage() {
           </div>
         </div>
         {/* === الجانب الأيمن (الهوية البصرية) === */}
-        <div className="bg-white flex flex-col p-12 flex-1 h-full text-white relative overflow-hidden shadow-2xl" dir="rtl">
+        <div className="bg-white flex flex-col p-12 flex-1 self-stretch text-white relative overflow-hidden shadow-2xl" dir="rtl">
           {/* خلفية جمالية خفيفة */}
           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_left,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
           {/* اللوغو */}

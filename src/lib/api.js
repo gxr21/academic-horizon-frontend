@@ -33,7 +33,9 @@ api.interceptors.response.use(
       if (status === 401 || (status === 403 && data?.error?.code === 'ACCOUNT_RESTRICTED')) {
         const requestUrl = String(error.config?.url || '');
         const isLoginOrRegister =
-          requestUrl.includes('/api/auth/login') || requestUrl.includes('/api/auth/register');
+          requestUrl.includes('/api/auth/login') ||
+          requestUrl.includes('/api/auth/register') ||
+          requestUrl.includes('/api/auth/google');
 
         if (!isLoginOrRegister) {
           clearAuthSession();
@@ -65,6 +67,7 @@ api.interceptors.response.use(
 export const authAPI = {
   register: (data) => api.post('/api/auth/register', data),
   login: (data) => api.post('/api/auth/login', data),
+  google: (data) => api.post('/api/auth/google', data),
   getMe: () => api.get('/api/auth/me'),
   forgotPassword: (data) => api.post('/api/auth/forgot-password', data),
   verifyResetToken: (token) =>

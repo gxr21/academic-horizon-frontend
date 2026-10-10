@@ -71,6 +71,31 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   /**
+   * Google sign-in — the ID token is verified by the server, which signs the
+   * visitor in (or creates a student account) and returns our own JWT.
+   */
+  const loginWithGoogle = useCallback(async (credential) => {
+    try {
+      const response = await authAPI.google({ credential });
+      const { token, user: userData } = response.data;
+
+      setAuthSession(token, userData);
+      setUser(userData);
+      setIsAuthenticated(true);
+
+      // New browsers/accounts need their E2EE key pair created and synced
+      await ensureKeyPair(userData);
+
+      return { success: true, user: userData, isNew: !!response.data.isNew };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || 'تعذر تسجيل الدخول عبر Google',
+      };
+    }
+  }, []);
+
+  /**
    * Register — calls real API, generates E2EE key pair, stores JWT.
    */
   const register = useCallback(async (name, email, password, role = 'student') => {
@@ -157,6 +182,7 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated,
     isLoading,
     login,
+    loginWithGoogle,
     register,
     logout,
     updateUser,

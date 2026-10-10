@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Input from '../../components/input/input.jsx';
 import Button from '../../components/buttons/button.jsx';
+import GoogleSignInButton from '../../components/google/GoogleSignInButton.jsx';
 const academicFont = 'Tajawal';
 function LoginPage () {
   const [role, setRole] = useState('student');
@@ -11,7 +12,7 @@ function LoginPage () {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
 
   useEffect(() => {
     const stored = sessionStorage.getItem('authError');
@@ -20,6 +21,33 @@ function LoginPage () {
       sessionStorage.removeItem('authError');
     }
   }, []);
+
+  const goHome = (account) => {
+    if (account.role === 'provider') {
+      navigate('/dashboard');
+    } else if (account.role === 'admin') {
+      navigate('/admin');
+    } else {
+      navigate('/home');
+    }
+  };
+
+  const handleGoogle = async (credential) => {
+    setError('');
+    setIsLoading(true);
+    try {
+      const result = await loginWithGoogle(credential);
+      if (result.success) {
+        goHome(result.user);
+      } else {
+        setError(result.error);
+      }
+    } catch {
+      setError('حدث خطأ أثناء تسجيل الدخول عبر Google');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleLogin = async () => {
     setError('');
@@ -113,15 +141,14 @@ function LoginPage () {
           className="bg-academic-blue text-lg text-white rounded-lg p-3 w-80 mt-4 text-right flex justify-center items-center transtion-all duration-300 hover:bg-academic-blue-dark disabled:opacity-50">
          {isLoading ? 'جاري تسجيل الدخول...' : 'دخول للمنصة'}
         </Button>
-        {/* <div className="flex flex-col gap-4 mt-4 ">
-          <p className="text-center text-gray-500">أو</p>
-          <Button className="bg-white text-lg text-academic-blue rounded-lg p-3 w-80 mt-4 text-right flex justify-center items-center border border-academic-blue gap-2 transtion-all duration-300 hover:bg-academic-blue hover:text-white">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.182 15.182a4.5 4.5 0 0 1-6.364 0M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75Zm-.375 0h.008v.015h-.008V9.75Zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75Zm-.375 0h.008v.015h-.008V9.75Z" />
-            </svg>
-            تسجيل الدخول عبر جوجل
-          </Button>
-        </div> */}
+        <div className="w-80 mt-5 flex flex-col gap-3">
+          <div className="flex items-center gap-3" dir="rtl">
+            <span className="flex-1 h-px bg-gray-200" />
+            <span className="text-sm text-gray-400" style={{fontFamily: academicFont}}>أو</span>
+            <span className="flex-1 h-px bg-gray-200" />
+          </div>
+          <GoogleSignInButton text="continue_with" width={320} onCredential={handleGoogle} />
+        </div>
         <div className="flex flex-col gap-4 mt-4 ">
           <Link to='/signup' className="text-academic-blue">
             <p className="text-center text-gray-500" style={{fontFamily: academicFont}}>ليس لديك حساب؟</p>
