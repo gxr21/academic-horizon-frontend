@@ -34,6 +34,13 @@ import { getStoredPrivateKey, decryptMessage } from '../../lib/crypto';
 
 const academicBlue = '#1A5276';
 
+const PAYOUT_LABEL = { mastercard: 'ماستركارد', zaincash: 'زين كاش', asiahawala: 'آسيا حوالة' };
+// Where a provider's withdrawal goes, e.g. "زين كاش 07701234567" or "ماستركارد ****1234"
+const describePayout = (w) =>
+  (w.method || 'mastercard') === 'mastercard'
+    ? `ماستركارد ****${w.cardLast4}`
+    : `${PAYOUT_LABEL[w.method] || w.method} ${w.walletNumber}`;
+
 // Data is refreshed instantly by real-time notifications (see NotificationContext);
 // this slow interval is only a safety net.
 const SAFETY_REFRESH_MS = 60 * 1000;
@@ -274,7 +281,7 @@ export default function AdminDashboard() {
         ? window.prompt('سبب الرفض (سيُعاد المبلغ لمحفظة المزود):', '')
         : '';
     if (status === 'rejected' && note === null) return;
-    if (status === 'paid' && !window.confirm(`تأكيد تحويل ${withdrawal.amount} دينار إلى ماستركارد ****${withdrawal.cardLast4}؟`)) {
+    if (status === 'paid' && !window.confirm(`تأكيد تحويل ${withdrawal.amount} دينار إلى ${describePayout(withdrawal)}؟`)) {
       return;
     }
     runAction(
@@ -619,7 +626,7 @@ export default function AdminDashboard() {
                   <p className="text-xs text-gray-400 mt-2">الحالية {commissionPercent}% · تُثبَّت على الطلب عند إنشائه</p>
                 </div>
                 <div className="bg-white rounded-3xl border border-gray-100 p-6">
-                  <p className="text-sm text-gray-400 font-bold">سحب ماستركارد معلّق</p>
+                  <p className="text-sm text-gray-400 font-bold">طلبات سحب معلّقة</p>
                   <p className="text-2xl font-black text-orange-600 mt-2">{pendingWithdrawalsCount}</p>
                 </div>
               </div>
@@ -628,15 +635,23 @@ export default function AdminDashboard() {
                 <div className="bg-amber-50 border border-amber-100 rounded-3xl p-5 text-sm">
                   <p className="font-black text-amber-800 mb-2">بيانات التحويل — استخدمها ثم أغلق النافذة</p>
                   <p>الاسم: {revealedCard.cardHolderName}</p>
-                  <p>البطاقة: {revealedCard.cardNumber}</p>
-                  <p>الانتهاء: {revealedCard.cardExpiry || '—'}</p>
+                  {(revealedCard.method || 'mastercard') === 'mastercard' ? (
+                    <>
+                      <p>البطاقة: {revealedCard.cardNumber}</p>
+                      <p>الانتهاء: {revealedCard.cardExpiry || '—'}</p>
+                    </>
+                  ) : (
+                    <p dir="ltr" className="text-right">
+                      {PAYOUT_LABEL[revealedCard.method] || revealedCard.method}: {revealedCard.walletNumber}
+                    </p>
+                  )}
                   <p>المبلغ: {Number(revealedCard.amount).toLocaleString('ar-IQ')} دينار</p>
                   <button type="button" className="mt-3 text-xs font-bold text-amber-700" onClick={() => setRevealedCard(null)}>إخفاء الرقم</button>
                 </div>
               )}
 
               <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-6">
-                <h3 className="font-black text-gray-800 text-xl mb-4">طلبات سحب الماستركارد</h3>
+                <h3 className="font-black text-gray-800 text-xl mb-4">طلبات سحب المزودين</h3>
                 {(finance?.withdrawals || []).length === 0 ? (
                   <p className="text-sm text-gray-400">لا توجد طلبات سحب</p>
                 ) : (
@@ -645,11 +660,13 @@ export default function AdminDashboard() {
                       <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 bg-gray-50 rounded-2xl px-4 py-3">
                         <div>
                           <p className="font-black text-gray-800">{item.provider?.name || 'مزود'} · {Number(item.amount).toLocaleString('ar-IQ')} دينار</p>
-                          <p className="text-xs text-gray-500">ماستركارد ****{item.cardLast4} · {item.cardHolderName} · {item.status}</p>
+                          <p className="text-xs text-gray-500">{describePayout(item)} · {item.cardHolderName} · {item.status}</p>
                         </div>
                         {item.status === 'pending' && (
                           <div className="flex gap-2">
-                            <button type="button" onClick={() => handleRevealCard(item)} className="px-3 py-2 rounded-xl bg-white border text-xs font-bold">عرض البطاقة</button>
+                            <button type="button" onClick={() => handleRevealCard(item)} className="px-3 py-2 rounded-xl bg-white border text-xs font-bold">
+                              {(item.method || 'mastercard') === 'mastercard' ? 'عرض البطاقة' : 'عرض بيانات المحفظة'}
+                            </button>
                             <button type="button" onClick={() => handleReviewWithdrawal(item, 'paid')} className="px-3 py-2 rounded-xl bg-green-600 text-white text-xs font-bold">تم التحويل</button>
                             <button type="button" onClick={() => handleReviewWithdrawal(item, 'rejected')} className="px-3 py-2 rounded-xl bg-red-500 text-white text-xs font-bold">رفض</button>
                           </div>

@@ -10,10 +10,17 @@ const academicBlue = '#1A5276';
 
 const TX_LABEL = {
   order_credit: 'أرباح طلب',
-  withdrawal_hold: 'حجز سحب ماستركارد',
+  withdrawal_hold: 'حجز مبلغ للسحب',
   withdrawal_paid: 'تم تحويل السحب',
   withdrawal_refund: 'إرجاع سحب مرفوض',
 };
+
+const METHODS = [
+  { id: 'zaincash', label: 'زين كاش' },
+  { id: 'asiahawala', label: 'آسيا حوالة' },
+  { id: 'mastercard', label: 'ماستركارد' },
+];
+const METHOD_LABEL = Object.fromEntries(METHODS.map((m) => [m.id, m.label]));
 
 const WD_LABEL = {
   pending: { text: 'بانتظار التحويل', className: 'bg-orange-50 text-orange-700 border-orange-100' },
@@ -49,7 +56,10 @@ export default function ProviderWallet() {
     cardHolderName: '',
     cardNumber: '',
     cardExpiry: '',
+    walletNumber: '',
   });
+  const [method, setMethod] = useState('zaincash');
+  const isCard = method === 'mastercard';
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -69,13 +79,15 @@ export default function ProviderWallet() {
     setBusy(true);
     try {
       const res = await walletAPI.requestWithdrawal({
+        method,
         amount: Number(form.amount),
         cardHolderName: form.cardHolderName,
-        cardNumber: form.cardNumber,
-        cardExpiry: form.cardExpiry,
+        ...(isCard
+          ? { cardNumber: form.cardNumber, cardExpiry: form.cardExpiry }
+          : { walletNumber: form.walletNumber }),
       });
       setMessage(res.message || 'تم إرسال طلب السحب');
-      setForm({ amount: '', cardHolderName: '', cardNumber: '', cardExpiry: '' });
+      setForm({ amount: '', cardHolderName: '', cardNumber: '', cardExpiry: '', walletNumber: '' });
       queryClient.invalidateQueries({ queryKey: ['providerWallet'] });
     } catch (err) {
       setError(err.message || 'تعذر إرسال طلب السحب');
@@ -101,7 +113,7 @@ export default function ProviderWallet() {
             <div>
               <h1 className="text-2xl font-black mb-1">محفظة مزود الخدمة</h1>
               <p className="text-blue-100/80 text-sm">
-                بعد اعتماد الأدمن للتسليم تُضاف أرباحك هنا، والسحب فقط عبر ماستركارد
+                بعد اعتماد الأدمن للتسليم تُضاف أرباحك هنا، وتسحبها عبر زين كاش أو آسيا حوالة أو ماستركارد
               </p>
             </div>
             <div className="bg-white/10 p-4 rounded-2xl">
@@ -132,11 +144,29 @@ export default function ProviderWallet() {
         <section className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-8 space-y-6">
           <div className="flex items-center gap-3">
             <FaCreditCard style={{ color: academicBlue }} />
-            <h2 className="text-xl font-black" style={{ color: academicBlue }}>طلب سحب ماستركارد</h2>
+            <h2 className="text-xl font-black" style={{ color: academicBlue }}>طلب سحب الأرباح</h2>
           </div>
           <p className="text-sm text-gray-500">
-            أقل مبلغ {formatIqd(minWithdrawal)}. يُحجز الرصيد حتى تحوّل الإدارة المبلغ إلى بطاقتك.
+            أقل مبلغ {formatIqd(minWithdrawal)}. يُحجز الرصيد حتى تحوّل الإدارة المبلغ إلى {isCard ? 'بطاقتك' : 'محفظتك'}.
           </p>
+          <div className="flex flex-wrap gap-2">
+            {METHODS.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => {
+                  setMethod(m.id);
+                  setError('');
+                }}
+                className={`px-4 py-2 rounded-xl text-sm font-bold ${
+                  method === m.id ? 'text-white' : 'border border-gray-200 text-gray-600'
+                }`}
+                style={method === m.id ? { backgroundColor: academicBlue } : undefined}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
           {message && <p className="rounded-2xl bg-green-50 text-green-700 border border-green-100 px-4 py-3 text-sm font-bold">{message}</p>}
           {error && <p className="rounded-2xl bg-red-50 text-red-700 border border-red-100 px-4 py-3 text-sm font-bold">{error}</p>}
 
@@ -154,7 +184,7 @@ export default function ProviderWallet() {
               />
             </label>
             <label className="space-y-2">
-              <span className="text-xs font-bold text-gray-400">الاسم على البطاقة</span>
+              <span className="text-xs font-bold text-gray-400">{isCard ? 'الاسم على البطاقة' : 'اسم صاحب المحفظة'}</span>
               <input
                 name="cardHolderName"
                 value={form.cardHolderName}
@@ -163,30 +193,50 @@ export default function ProviderWallet() {
                 required
               />
             </label>
-            <label className="space-y-2 md:col-span-2">
-              <span className="text-xs font-bold text-gray-400">رقم ماستركارد</span>
-              <input
-                name="cardNumber"
-                inputMode="numeric"
-                autoComplete="off"
-                value={form.cardNumber}
-                onChange={handleChange}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none tracking-widest"
-                placeholder="5xxx xxxx xxxx xxxx"
-                required
-              />
-            </label>
-            <label className="space-y-2">
-              <span className="text-xs font-bold text-gray-400">الانتهاء MM/YY</span>
-              <input
-                name="cardExpiry"
-                value={form.cardExpiry}
-                onChange={handleChange}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
-                placeholder="08/28"
-                required
-              />
-            </label>
+            {isCard ? (
+              <>
+                <label className="space-y-2 md:col-span-2">
+                  <span className="text-xs font-bold text-gray-400">رقم ماستركارد</span>
+                  <input
+                    name="cardNumber"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={form.cardNumber}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none tracking-widest"
+                    placeholder="5xxx xxxx xxxx xxxx"
+                    required
+                  />
+                </label>
+                <label className="space-y-2">
+                  <span className="text-xs font-bold text-gray-400">الانتهاء MM/YY</span>
+                  <input
+                    name="cardExpiry"
+                    value={form.cardExpiry}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
+                    placeholder="08/28"
+                    required
+                  />
+                </label>
+              </>
+            ) : (
+              <label className="space-y-2">
+                <span className="text-xs font-bold text-gray-400">رقم محفظة {METHOD_LABEL[method]}</span>
+                <input
+                  name="walletNumber"
+                  type="tel"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  dir="ltr"
+                  value={form.walletNumber}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none text-right"
+                  placeholder="07xxxxxxxxx"
+                  required
+                />
+              </label>
+            )}
             <div className="flex items-end">
               <button
                 type="submit"
@@ -209,7 +259,11 @@ export default function ProviderWallet() {
               const meta = WD_LABEL[item.status] || WD_LABEL.pending;
               return (
                 <div key={item.id} className={`rounded-2xl border px-4 py-3 text-sm ${meta.className}`}>
-                  <p className="font-bold">{formatIqd(item.amount)} · ماستركارد ****{item.cardLast4}</p>
+                  <p className="font-bold">{formatIqd(item.amount)} ·{' '}
+                    {(item.method || 'mastercard') === 'mastercard'
+                      ? `ماستركارد ****${item.cardLast4}`
+                      : `${METHOD_LABEL[item.method] || item.method} ${item.walletNumber}`}
+                  </p>
                   <p className="opacity-80 mt-1">{meta.text} · {new Date(item.createdAt).toLocaleString('ar-EG')}</p>
                   {item.adminNote && <p className="mt-1">ملاحظة الإدارة: {item.adminNote}</p>}
                 </div>
