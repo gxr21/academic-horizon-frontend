@@ -4,6 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import Input from '../../components/input/input.jsx';
 import Button from '../../components/buttons/button.jsx';
 import GoogleSignInButton from '../../components/google/GoogleSignInButton.jsx';
+import ResendVerification from '../../components/auth/ResendVerification.jsx';
+import { checkEmail } from '../../lib/emailCheck.js';
 const academicFont = 'Tajawal';
 function LoginPage () {
   const [role, setRole] = useState('student');
@@ -11,6 +13,7 @@ function LoginPage () {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState('');
   const navigate = useNavigate();
   const { login, loginWithGoogle } = useAuth();
 
@@ -51,14 +54,26 @@ function LoginPage () {
 
   const handleLogin = async () => {
     setError('');
+    setUnverifiedEmail('');
     if (!email || !password) {
       setError('البريد الإلكتروني وكلمة المرور مطلوبان');
       return;
     }
 
+    const emailProblem = checkEmail(email, { strict: false });
+    if (emailProblem) {
+      setError(emailProblem);
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const result = await login(email, password);
+      const result = await login(email.trim(), password);
+      if (!result.success && result.code === 'EMAIL_NOT_VERIFIED') {
+        setUnverifiedEmail(email.trim().toLowerCase());
+        setError(result.error);
+        return;
+      }
       if (result.success) {
         // توجيه المستخدم بناءً على نوع الحساب
         if (result.user.role === 'provider') {
@@ -133,6 +148,7 @@ function LoginPage () {
         {error && (
           <div className="mt-2 w-80">
             <p className="text-red-500 text-sm text-right">{error}</p>
+            {unverifiedEmail && <ResendVerification email={unverifiedEmail} className="mt-2" />}
           </div>
         )}
         <Button 

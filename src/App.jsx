@@ -21,6 +21,7 @@ import AdminDashboard from "./pages/admin/admin"
 import ProviderWallet from "./pages/wallet/provider-wallet"
 import ForgotPasswordPage from "./pages/auth/forgot-password"
 import ResetPasswordPage from "./pages/auth/reset-password"
+import VerifyEmailPage from "./pages/auth/verify-email"
 import HelpPage from "./pages/help/help"
 import PrivacyPage from "./pages/legal/privacy"
 import TermsPage from "./pages/legal/terms"
@@ -123,6 +124,7 @@ function App() {
                 <Route path="/signup" element={<RegisterPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/verify-email" element={<VerifyEmailPage />} />
                 <Route path='/' element={
                   <PublicRoute>
                     <LandingPage />

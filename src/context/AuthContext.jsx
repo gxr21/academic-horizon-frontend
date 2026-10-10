@@ -66,6 +66,7 @@ export const AuthProvider = ({ children }) => {
       return {
         success: false,
         error: error.message || 'حدث خطأ أثناء تسجيل الدخول',
+        code: error.code,
       };
     }
   }, []);
@@ -96,7 +97,29 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   /**
-   * Register — calls real API, generates E2EE key pair, stores JWT.
+   * Opening the emailed link proves the inbox is theirs, so the server signs them in.
+   */
+  const verifyEmail = useCallback(async (token) => {
+    try {
+      const response = await authAPI.verifyEmail({ token });
+      const { token: jwt, user: userData } = response.data;
+
+      setAuthSession(jwt, userData);
+      setUser(userData);
+      setIsAuthenticated(true);
+      await ensureKeyPair(userData);
+
+      return { success: true, user: userData };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || 'تعذر تأكيد البريد الإلكتروني',
+      };
+    }
+  }, []);
+
+  /**
+   * Register — creates the account; a confirmation email must be opened before login.
    */
   const register = useCallback(async (name, email, password, role = 'student') => {
     try {
@@ -109,18 +132,14 @@ export const AuthProvider = ({ children }) => {
       }
 
       const response = await authAPI.register({ name, email, password, role });
-      const { token, user: userData } = response.data;
 
-      // Store JWT
-      setAuthSession(token, userData);
-
-      setUser(userData);
-      setIsAuthenticated(true);
-
-      // Generate E2EE key pair on registration
-      await ensureKeyPair(userData);
-
-      return { success: true, user: userData };
+      // The account stays locked until the emailed link is opened, so there is no session yet
+      return {
+        success: true,
+        requiresVerification: !!response.data?.requiresVerification,
+        email: response.data?.email || email,
+        emailSent: response.data?.emailSent !== false,
+      };
     } catch (error) {
       return {
         success: false,
@@ -184,6 +203,7 @@ export const AuthProvider = ({ children }) => {
     login,
     loginWithGoogle,
     register,
+    verifyEmail,
     logout,
     updateUser,
     refreshUser,

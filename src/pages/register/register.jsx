@@ -4,6 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import Input from '../../components/input/input';
 import Button from '../../components/buttons/button';
 import GoogleSignInButton from '../../components/google/GoogleSignInButton';
+import ResendVerification from '../../components/auth/ResendVerification';
+import { checkEmail } from '../../lib/emailCheck';
 const img_user = [
   'https://randomuser.me/api/portraits/women/44.jpg',
   'https://randomuser.me/api/portraits/men/45.jpg',
@@ -15,6 +17,9 @@ function RegisterPage() {
   const [password, setPassword] = useState('');
   const [verfiyPassword, setVerfiyPassword] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [emailHint, setEmailHint] = useState('');
+  const [pendingEmail, setPendingEmail] = useState(null);
   const role = 'student';
   const navigate = useNavigate();
   const { register, loginWithGoogle } = useAuth();
@@ -40,10 +45,17 @@ function RegisterPage() {
       setError('كلمات المرور غير متطابقة');
       return;
     }
-    const result = await register(name, email, password, role);
+    const emailProblem = checkEmail(email);
+    if (emailProblem) {
+      setError(emailProblem);
+      return;
+    }
+    setIsSubmitting(true);
+    const result = await register(name, email.trim(), password, role);
+    setIsSubmitting(false);
     if (result.success) {
-      // توجيه المستخدم بعد التسجيل الناجح
-      navigate('/home');
+      // الحساب ينتظر تأكيد البريد قبل أول دخول
+      setPendingEmail({ address: result.email, sent: result.emailSent });
     } else {
       setError(result.error);
     }
@@ -54,6 +66,37 @@ function RegisterPage() {
       <div className="register-container w-[1000px] min-h-[750px] bg-white rounded-3xl shadow-2xl flex overflow-hidden">
         {/* === الجانب الأيسر (نموذج التسجيل) === */}
         <div className="register-side flex-1 flex flex-col justify-center items-center p-12 bg-white" dir="rtl">
+          {pendingEmail ? (
+          <div className="w-full max-w-sm text-center space-y-5">
+            <div className="mx-auto w-16 h-16 rounded-full bg-blue-50 text-academic-blue flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-8">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+              </svg>
+            </div>
+            <h1 className="text-3xl font-bold text-academic-blue">تحقق من بريدك</h1>
+            {pendingEmail.sent ? (
+              <p className="text-gray-600 leading-relaxed">
+                أرسلنا رابط التفعيل إلى
+                <span className="block font-bold text-academic-blue my-1" dir="ltr">{pendingEmail.address}</span>
+                افتح الرسالة واضغط الرابط لتفعيل حسابك. الرابط صالح 24 ساعة.
+              </p>
+            ) : (
+              <p className="text-red-600 leading-relaxed text-sm">
+                تم إنشاء حسابك لكن تعذر إرسال رسالة التفعيل إلى {pendingEmail.address}. اضغط «إعادة الإرسال» بعد قليل.
+              </p>
+            )}
+            <p className="text-xs text-gray-400">لم تجدها؟ تفقد صندوق الرسائل غير المرغوبة (Spam).</p>
+            <ResendVerification email={pendingEmail.address} startCooldown={pendingEmail.sent} />
+            <button
+              type="button"
+              onClick={() => setPendingEmail(null)}
+              className="block mx-auto text-sm text-gray-500 hover:text-academic-blue"
+            >
+              كتبت البريد بشكل خاطئ؟ العودة وتعديله
+            </button>
+            <Link to="/login" className="block text-sm font-bold text-academic-blue">الذهاب لتسجيل الدخول</Link>
+          </div>
+          ) : (
           <div className="w-full max-w-sm">
             <h1 className="text-4xl font-bold text-academic-blue mb-2 text-right">إنشاء حساب جديد</h1>
             <p className="text-gray-500 mb-8 text-right text-sm">ابدأ رحلتك الأكاديمية معنا اليوم</p>
@@ -76,14 +119,22 @@ function RegisterPage() {
                 type='email'
                 placeholder="البريد الإلكتروني"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg p-3  mt-4 text-right"
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (emailHint) setEmailHint('');
+                }}
+                onBlur={() => setEmailHint(email.trim() ? checkEmail(email) : '')}
+                autoComplete="email"
+                className={`w-full border rounded-lg p-3  mt-4 text-right ${emailHint ? 'border-red-300' : 'border-gray-300'}`}
                 svg={
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
                   </svg>
                 }
               />
+              {emailHint && (
+                <p role="alert" className="text-red-500 text-xs text-right -mt-2">{emailHint}</p>
+              )}
               <Input
                 type='password'
                 placeholder="كلمة المرور"
@@ -117,8 +168,9 @@ function RegisterPage() {
               )}
               <Button 
                 onClick={handleRegister}
-                className="bg-academic-blue text-white w-full py-3 rounded-xl mt-4 font-bold hover:opacity-90 transition shadow-lg">
-                إنشاء حساب
+                disabled={isSubmitting}
+                className="bg-academic-blue text-white w-full py-3 rounded-xl mt-4 font-bold hover:opacity-90 transition shadow-lg disabled:opacity-60">
+                {isSubmitting ? 'جاري التحقق من البريد...' : 'إنشاء حساب'}
               </Button>
               <div className="flex items-center gap-3 mt-1" dir="rtl">
                 <span className="flex-1 h-px bg-gray-200" />
@@ -131,6 +183,7 @@ function RegisterPage() {
               لديك حساب بالفعل؟ <Link to="/login" className="text-academic-blue font-bold">تسجيل الدخول</Link>
             </p>
           </div>
+          )}
         </div>
         {/* === الجانب الأيمن (الهوية البصرية) === */}
         <div className="bg-white flex flex-col p-12 flex-1 self-stretch text-white relative overflow-hidden shadow-2xl" dir="rtl">

@@ -7,6 +7,7 @@ const routes = [
   'signup',
   'forgot-password',
   'reset-password',
+  'verify-email',
   'home',
   'chat',
   'dashboard',
