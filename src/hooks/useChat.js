@@ -156,6 +156,11 @@ export const useChat = (orderId, currentUser) => {
   useEffect(() => {
     if (!orderId || !isConnected || !currentUser) return;
 
+    // Set when the page is left (or the effect re-runs) while the async setup below is still going.
+    // Without it the setup could join the room AFTER the visitor already left, and the other
+    // person would see them as online while they are on another page.
+    let cancelled = false;
+
     const initRoom = async () => {
       try {
         setIsLoading(true);
@@ -163,9 +168,11 @@ export const useChat = (orderId, currentUser) => {
 
         // Publish this browser's public key if the server still has a different one
         await publishLocalPublicKey(currentUser.id);
+        if (cancelled) return;
 
         // Load private key
         privateKeyRef.current = await getStoredPrivateKey(currentUser.id);
+        if (cancelled) return;
 
         // Join socket room
         joinRoom(orderId);
@@ -173,16 +180,18 @@ export const useChat = (orderId, currentUser) => {
         // Load message history
         await loadMessages(1);
       } catch (err) {
+        if (cancelled) return;
         console.error('Room init error:', err);
         setError(err.message);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     initRoom();
 
     return () => {
+      cancelled = true;
       leaveRoom(orderId);
       setIsJoined(false);
       setOnlineUserIds([]);
