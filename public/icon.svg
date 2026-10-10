@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1F6391"/>
+      <stop offset="1" stop-color="#123B55"/>
+    </linearGradient>
+    <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F3D391"/>
+      <stop offset="1" stop-color="#E9C176"/>
+    </linearGradient>
+    <clipPath id="above"><rect x="0" y="0" width="512" height="424"/></clipPath>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <!-- Rising sun on the horizon -->
+  <g clip-path="url(#above)">
+    <circle cx="256" cy="424" r="92" fill="url(#sun)"/>
+  </g>
+  <rect x="84" y="420" width="344" height="16" rx="8" fill="#76D2D2"/>
+  <!-- Cap base -->
+  <path d="M164 200v58c0 34 41 56 92 56s92-22 92-56v-58l-92 40z" fill="#D6EAF8"/>
+  <!-- Cap top -->
+  <path d="M256 92 424 166 256 240 88 166z" fill="#FFFFFF"/>
+  <!-- Tassel -->
+  <path d="M410 172v82" stroke="#E9C176" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="410" cy="270" r="14" fill="#E9C176"/>
+</svg>
