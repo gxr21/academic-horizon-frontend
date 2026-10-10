@@ -39,7 +39,8 @@ function LoginPage () {
     setError('');
     setIsLoading(true);
     try {
-      const result = await loginWithGoogle(credential);
+      // The selected tab tells the server what the visitor expects to enter as
+      const result = await loginWithGoogle(credential, role);
       if (result.success) {
         goHome(result.user);
       } else {

@@ -75,9 +75,9 @@ export const AuthProvider = ({ children }) => {
    * Google sign-in — the ID token is verified by the server, which signs the
    * visitor in (or creates a student account) and returns our own JWT.
    */
-  const loginWithGoogle = useCallback(async (credential) => {
+  const loginWithGoogle = useCallback(async (credential, role) => {
     try {
-      const response = await authAPI.google({ credential });
+      const response = await authAPI.google({ credential, ...(role ? { role } : {}) });
       const { token, user: userData } = response.data;
 
       setAuthSession(token, userData);
