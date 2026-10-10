@@ -69,7 +69,7 @@ function LoginPage () {
 
     setIsLoading(true);
     try {
-      const result = await login(email.trim(), password);
+      const result = await login(email.trim(), password, role);
       if (!result.success && result.code === 'EMAIL_NOT_VERIFIED') {
         setUnverifiedEmail(email.trim().toLowerCase());
         setError(result.error);

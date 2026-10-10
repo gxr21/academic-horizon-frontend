@@ -43,13 +43,13 @@ export const AuthProvider = ({ children }) => {
   /**
    * Login — calls real API, stores JWT + user data.
    */
-  const login = useCallback(async (email, password) => {
+  const login = useCallback(async (email, password, role) => {
     try {
       if (!email || !password) {
         return { success: false, error: 'البريد الإلكتروني وكلمة المرور مطلوبان' };
       }
 
-      const response = await authAPI.login({ email, password });
+      const response = await authAPI.login({ email, password, ...(role ? { role } : {}) });
       const { token, user: userData } = response.data;
 
       // Store JWT
