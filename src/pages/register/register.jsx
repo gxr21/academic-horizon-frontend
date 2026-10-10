@@ -184,14 +184,6 @@ function RegisterPage() {
                     autoComplete="tel"
                     className="w-full border border-gray-300 rounded-lg p-3  mt-4 text-right"
                   />
-                  <textarea
-                    placeholder="نبذة عن خبرتك وتخصصك (اختياري)"
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    maxLength={1000}
-                    rows={3}
-                    className="w-full border border-gray-300 rounded-lg p-3 mt-4 text-right resize-none"
-                  />
                 </>
               )}
               <Input
