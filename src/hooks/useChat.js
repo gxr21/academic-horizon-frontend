@@ -42,6 +42,7 @@ export const useChat = (orderId, currentUser) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [typingUsers, setTypingUsers] = useState([]);
+  const [onlineUserIds, setOnlineUserIds] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
 
   const privateKeyRef = useRef(null);
@@ -66,8 +67,23 @@ export const useChat = (orderId, currentUser) => {
     const onDisconnect = () => {
       setIsConnected(false);
       setIsJoined(false);
+      setOnlineUserIds([]);
     };
-    const onRoomJoined = () => setIsJoined(true);
+    const onRoomJoined = (data) => {
+      setIsJoined(true);
+      // Who is already inside the conversation when we arrive
+      setOnlineUserIds(Array.isArray(data?.online) ? data.online : []);
+    };
+    const onUserJoined = (data) => {
+      if (!data?.userId) return;
+      setOnlineUserIds((prev) => (prev.includes(data.userId) ? prev : [...prev, data.userId]));
+    };
+    const onUserLeft = (data) => {
+      if (!data?.userId) return;
+      setOnlineUserIds((prev) => prev.filter((id) => id !== data.userId));
+      // Someone who left has obviously stopped typing
+      setTypingUsers((prev) => prev.filter((id) => id !== data.userId));
+    };
 
     const onReceiveMessage = async (data) => {
       // Decrypt message
@@ -115,6 +131,8 @@ export const useChat = (orderId, currentUser) => {
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('room_joined', onRoomJoined);
+    socket.on('user_joined', onUserJoined);
+    socket.on('user_left', onUserLeft);
     socket.on('receive_message', onReceiveMessage);
     socket.on('typing', onTyping);
     socket.on('stop_typing', onStopTyping);
@@ -125,6 +143,8 @@ export const useChat = (orderId, currentUser) => {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
       socket.off('room_joined', onRoomJoined);
+      socket.off('user_joined', onUserJoined);
+      socket.off('user_left', onUserLeft);
       socket.off('receive_message', onReceiveMessage);
       socket.off('typing', onTyping);
       socket.off('stop_typing', onStopTyping);
@@ -165,6 +185,7 @@ export const useChat = (orderId, currentUser) => {
     return () => {
       leaveRoom(orderId);
       setIsJoined(false);
+      setOnlineUserIds([]);
       setMessages([]);
     };
   }, [orderId, isConnected, currentUser]);
@@ -384,6 +405,7 @@ export const useChat = (orderId, currentUser) => {
     isLoading,
     error,
     typingUsers,
+    onlineUserIds,
     pagination,
     sendMessage,
     handleTyping,

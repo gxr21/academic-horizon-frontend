@@ -58,10 +58,13 @@ function ChatPage() {
         isLoading: chatLoading,
         error: chatError,
         typingUsers,
+        onlineUserIds,
         sendMessage: sendEncryptedMessage,
         handleTyping,
         loadRecipientKey,
     } = useChat(orderId, user);
+
+    const peerOnline = !!recipientId && isConnected && isJoined && onlineUserIds.includes(recipientId);
 
     // Order files (shown inside the conversation) — refreshed live through notifications / socket events
     const { data: orderFiles = [] } = useQuery({
@@ -546,12 +549,14 @@ function ChatPage() {
                                                 : providerData?.name || (user?.role === 'student' ? 'بانتظار مزود الخدمة' : 'مزود الخدمة')}
                                         </h3>
                                         <div className="flex items-center gap-2">
-                                            <p className="text-sm text-white/80">
-                                                {isConnected && isJoined ? 'متصل الآن' : 'غير متصل'}
+                                            {/* The other person is "online" only while they are inside this conversation */}
+                                            <span
+                                                className={`w-2 h-2 rounded-full ${peerOnline ? 'bg-green-400' : 'bg-gray-400'}`}
+                                                aria-hidden="true"
+                                            />
+                                            <p className="text-sm text-white/80" aria-live="polite">
+                                                {peerOnline ? 'متصل الآن' : 'غير متصل'}
                                             </p>
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-3 text-green-400">
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
-                                            </svg>
                                         </div>
                                     </div>
                                 </div>
