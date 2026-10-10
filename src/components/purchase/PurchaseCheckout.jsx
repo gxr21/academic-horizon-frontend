@@ -2,6 +2,7 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import { ordersAPI } from '../../lib/api';
+import PaymentPanel from './PaymentPanel';
 
 const academicBlue = '#1A5276';
 
@@ -37,10 +38,10 @@ export default function PurchaseCheckout({ service, onClose }) {
             }
       );
       const order = response.data?.order;
-      if (!order) throw new Error('تعذر إتمام الشراء');
+      if (!order) throw new Error('تعذر إنشاء الطلب');
       setReceipt(order);
     } catch (err) {
-      setError(err.message || 'تعذر إتمام الشراء');
+      setError(err.message || 'تعذر إنشاء الطلب');
     } finally {
       setBusy(false);
     }
@@ -52,12 +53,12 @@ export default function PurchaseCheckout({ service, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[80] bg-black/40 flex items-center justify-center p-4" dir="rtl">
-      <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-[80] bg-black/40 flex items-start sm:items-center justify-center p-4 overflow-y-auto" dir="rtl">
+      <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden my-4">
         <div className="px-6 py-5 text-white" style={{ backgroundColor: academicBlue }}>
-          <h2 className="text-xl font-black">{receipt ? 'تم الشراء' : 'تأكيد شراء الخدمة'}</h2>
+          <h2 className="text-xl font-black">{receipt ? 'تم إنشاء طلبك' : 'تأكيد طلب الخدمة'}</h2>
           <p className="text-blue-100/80 text-sm mt-1">
-            {receipt ? 'إيصال الشراء وماستركارد' : 'راجع التفاصيل قبل تأكيد الاستقطاع'}
+            {receipt ? (price > 0 ? 'الخطوة الأخيرة: الدفع ورفع الإيصال' : 'طلبك بانتظار قبول مزود الخدمة') : 'راجع التفاصيل قبل تأكيد الطلب'}
           </p>
         </div>
 
@@ -73,10 +74,12 @@ export default function PurchaseCheckout({ service, onClose }) {
                 <p className="text-2xl font-black text-academic-gold pt-2">{price > 0 ? formatIqd(price) : 'السعر بالتفاهم'}</p>
               </div>
 
-              <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm text-amber-900 leading-7">
-                طريقة الدفع: <strong>ماستركارد</strong> فقط.
-                بعد التأكيد يُسجَّل أنك اشتريت هذه الخدمة، وسيُستقطع المبلغ المستحق من بطاقة الدفع الخاصة بك عند تنفيذ التحويل البنكي.
-              </div>
+              {price > 0 && (
+                <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm text-amber-900 leading-7">
+                  الدفع عبر <strong>تحويل محفظة إلكترونية</strong>: بعد التأكيد ستظهر لك بيانات التحويل، ترسل المبلغ ثم ترفع صورة الإيصال.
+                  يُفعَّل الطلب ويصل للمزودين بعد أن نتحقق من وصول المبلغ.
+                </div>
+              )}
 
               <label className="flex items-start gap-3 text-sm text-gray-700 cursor-pointer">
                 <input
@@ -85,7 +88,9 @@ export default function PurchaseCheckout({ service, onClose }) {
                   onChange={(e) => setAgreed(e.target.checked)}
                   className="mt-1"
                 />
-                <span>أؤكد شراء هذه الخدمة وأوافق على استقطاع {price > 0 ? formatIqd(price) : 'المبلغ المتفق عليه'} من بطاقة ماستركارد الخاصة بي.</span>
+                <span>
+                  أؤكد طلب هذه الخدمة{price > 0 ? ` وسأحوّل ${formatIqd(price)} وأرفع إيصال التحويل` : ''}.
+                </span>
               </label>
 
               {error && <p className="text-sm font-bold text-red-600 bg-red-50 rounded-xl px-4 py-3">{error}</p>}
@@ -105,30 +110,27 @@ export default function PurchaseCheckout({ service, onClose }) {
                   className="flex-1 py-3 rounded-xl text-white font-bold disabled:opacity-50"
                   style={{ backgroundColor: academicBlue }}
                 >
-                  {busy ? 'جاري تأكيد الشراء...' : 'تأكيد الشراء'}
+                  {busy ? 'جاري إنشاء الطلب...' : 'تأكيد الطلب'}
                 </button>
               </div>
             </>
           ) : (
             <>
-              <div className="rounded-2xl bg-green-50 border border-green-100 p-5 text-center">
-                <p className="text-green-800 font-black text-lg">اشتريت خدمة {receipt.title}</p>
-                <p className="text-green-700 text-sm mt-2 leading-7">
-                  سيتم استقطاع {formatIqd(receipt.price)} من بطاقة ماستركارد الخاصة بك.
-                </p>
-              </div>
               <div className="rounded-2xl bg-gray-50 p-4 text-sm space-y-2">
+                <p className="font-black text-academic-blue">{receipt.title}</p>
                 <p><span className="text-gray-400 font-bold">رقم الطلب:</span> #{receipt.id?.slice(-6)}</p>
-                <p><span className="text-gray-400 font-bold">طريقة الدفع:</span> ماستركارد</p>
-                <p><span className="text-gray-400 font-bold">حالة الدفع:</span> ملتزم بالشراء — بانتظار التحويل البنكي</p>
+                <p><span className="text-gray-400 font-bold">المبلغ:</span> {price > 0 ? formatIqd(receipt.price) : 'بالتفاهم'}</p>
               </div>
+
+              <PaymentPanel order={receipt} onUpdated={(updated) => updated && setReceipt(updated)} />
+
               <button
                 type="button"
                 onClick={goToChat}
                 className="w-full py-3 rounded-xl text-white font-bold"
                 style={{ backgroundColor: academicBlue }}
               >
-                متابعة إلى المحادثة
+                {receipt.paymentStatus === 'unpaid' && price > 0 ? 'سأدفع لاحقاً — متابعة إلى المحادثة' : 'متابعة إلى المحادثة'}
               </button>
             </>
           )}
@@ -137,7 +139,6 @@ export default function PurchaseCheckout({ service, onClose }) {
     </div>
   );
 }
-
 PurchaseCheckout.propTypes = {
   service: PropTypes.shape({
     serviceId: PropTypes.string,
@@ -149,3 +150,4 @@ PurchaseCheckout.propTypes = {
   }).isRequired,
   onClose: PropTypes.func.isRequired,
 };
+

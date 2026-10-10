@@ -206,6 +206,29 @@ export const walletAPI = {
   requestWithdrawal: (data) => api.post('/api/wallet/withdrawals', data),
 };
 
+// ─── Payments (manual wallet transfer + receipt) ────────────
+export const paymentsAPI = {
+  // Where to send the money: { methods: [{id,label,account,holder}], instructions }
+  getInfo: () => api.get('/api/payments/info'),
+  uploadReceipt: (orderId, file, channel) => {
+    const formData = new FormData();
+    formData.append('channel', channel);
+    formData.append('receipt', file);
+    return api.post(`/api/payments/orders/${orderId}/receipt`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120000,
+    });
+  },
+  // Receipt picture as a Blob (admin or the owner student)
+  getReceipt: (orderId) =>
+    api.get(`/api/payments/orders/${orderId}/receipt`, { responseType: 'blob' }),
+  // Admin
+  getQueue: (view = 'review') => api.get('/api/payments/admin/queue', { params: { view } }),
+  decide: (orderId, data) => api.patch(`/api/payments/admin/orders/${orderId}/decision`, data),
+  getSettings: () => api.get('/api/payments/admin/settings'),
+  saveSettings: (data) => api.put('/api/payments/admin/settings', data),
+};
+
 export const profileChangesAPI = {
   create: (formData) =>
     api.post('/api/profile-changes', formData, {

@@ -9,6 +9,7 @@ import { getSocket } from "../../lib/socket";
 import HeaderHome from "../../components/header/headerHome";
 import FooterHome from "../../components/footer/footerHome";
 import ProfilePopup from "../../components/popup/ProfilePopup";
+import PaymentPanel from "../../components/purchase/PaymentPanel";
 
 const academicBlue = '#1A5276';
 const OBJECT_ID_REGEX = /^[a-f\d]{24}$/i;
@@ -372,7 +373,10 @@ function ChatPage() {
             <main className="container mx-auto px-6 py-8">
                 {location.state?.justPurchased && (
                     <div className="mb-6 rounded-2xl border border-green-100 bg-green-50 px-5 py-4 text-green-800 text-sm font-bold leading-7">
-                        تم شراء هذه الخدمة. سيُستقطع المبلغ المستحق من بطاقة ماستركارد الخاصة بك عند تنفيذ التحويل البنكي.
+                        تم إنشاء طلبك بنجاح.
+                        {orderDetails?.paymentStatus === 'unpaid' && Number(orderDetails?.price) > 0
+                            ? ' أكمل الدفع من لوحة الطلب ليُفعَّل ويصل للمزودين.'
+                            : ''}
                     </div>
                 )}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -393,10 +397,24 @@ function ChatPage() {
                                         </div>
                                     </div>
 
-                                    {orderDetails.paymentStatus === 'reserved' && (
+                                    {user?.role === 'student' && ['unpaid', 'review'].includes(orderDetails.paymentStatus) && (
+                                        <PaymentPanel
+                                            order={orderDetails}
+                                            onUpdated={() => queryClient.invalidateQueries({ queryKey: ['orders'] })}
+                                        />
+                                    )}
+
+                                    {user?.role !== 'student' && ['reserved', 'collected'].includes(orderDetails.paymentStatus) && Number(orderDetails.price) > 0 && (
+                                        <div className="rounded-xl border border-green-100 bg-green-50 p-4 text-sm text-green-900 leading-7">
+                                            تم استلام مبلغ هذا الطلب ({orderDetails.price} دينار) وتأكيد الدفع من الإدارة.
+                                        </div>
+                                    )}
+
+                                    {user?.role === 'admin' && ['unpaid', 'review'].includes(orderDetails.paymentStatus) && (
                                         <div className="rounded-xl border border-amber-100 bg-amber-50 p-4 text-sm text-amber-900 leading-7">
-                                            تم شراء هذه الخدمة بماستركارد.
-                                            سيُستقطع {orderDetails.price || 0} دينار من بطاقة الدفع الخاصة بالطالب عند تنفيذ التحويل البنكي.
+                                            {orderDetails.paymentStatus === 'review'
+                                                ? 'الطالب رفع إيصال التحويل وهو بانتظار مراجعتك من تبويب المدفوعات.'
+                                                : 'الطلب غير مدفوع بعد.'}
                                         </div>
                                     )}
 
@@ -412,7 +430,12 @@ function ChatPage() {
                                                     orderStatus === 'delivered' ? 'text-purple-600' :
                                                     'text-red-600'
                                                 }`}>
-                                                    {orderStatus === 'pending' ? 'بانتظار قبول مزود الخدمة' :
+                                                    {orderStatus === 'pending'
+                                                        ? (orderDetails.paymentStatus === 'unpaid' && Number(orderDetails.price) > 0
+                                                            ? 'بانتظار الدفع'
+                                                            : orderDetails.paymentStatus === 'review'
+                                                                ? 'بانتظار تأكيد الدفع'
+                                                                : 'بانتظار قبول مزود الخدمة') :
                                                      orderStatus === 'assigned' ? 'تم التعيين' :
                                                      orderStatus === 'in_progress' ? 'قيد التنفيذ' :
                                                      orderStatus === 'completed' ? 'بانتظار مراجعة الأدمن' :

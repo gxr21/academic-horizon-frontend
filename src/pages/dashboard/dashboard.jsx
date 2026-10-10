@@ -240,7 +240,7 @@ function ProviderDashboard() {
                                             <p><span className="font-bold">الطالب:</span> {selectedOrder.student?.name || '—'}</p>
                                             <p><span className="font-bold">السعر:</span> <span className="text-academic-gold font-bold">{formatPrice(selectedOrder.price)}</span></p>
                                             {selectedOrder.paymentStatus === 'reserved' && (
-                                                <p className="text-amber-700 font-bold">الطالب اشترى الخدمة بماستركارد — بانتظار التحويل البنكي</p>
+                                                <p className="text-amber-700 font-bold">تم استلام مبلغ الطلب من الطالب وتأكيده من الإدارة</p>
                                             )}
                                             <p><span className="font-bold">تاريخ الطلب:</span> {formatDate(selectedOrder.createdAt)}</p>
                                         </div>

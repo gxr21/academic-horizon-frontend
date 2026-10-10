@@ -29,6 +29,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import { adminAPI, servicesAPI, filesAPI, downloadOrderFile, profileChangesAPI } from '../../lib/api';
 import NotificationBell from '../../components/notifications/NotificationBell';
+import PaymentsPanel from './PaymentsPanel';
 import { getStoredPrivateKey, decryptMessage } from '../../lib/crypto';
 
 const academicBlue = '#1A5276';
@@ -173,6 +174,7 @@ export default function AdminDashboard() {
   const pendingProfileChanges = profileChanges.filter((r) => r.status === 'pending');
   const pendingProfileChangesCount = stats?.pendingProfileChanges ?? pendingProfileChanges.length;
   const pendingWithdrawalsCount = stats?.pendingWithdrawals ?? finance?.pendingWithdrawals ?? 0;
+  const pendingPaymentsCount = stats?.pendingPayments ?? 0;
   const platformBalance = stats?.platformBalance ?? finance?.platformBalance ?? 0;
   const commissionPercent = finance?.commissionPercent ?? stats?.commissionPercent ?? 15;
 
@@ -203,6 +205,7 @@ export default function AdminDashboard() {
     else if (notification.type === 'student_report') setActiveTab('reports');
     else if (notification.type === 'provider_profile_change') setActiveTab('profileChanges');
     else if (notification.type === 'withdrawal_requested') setActiveTab('finance');
+    else if (notification.type === 'payment_receipt') setActiveTab('payments');
     else if (notification.type === 'new_user') {
       setActiveTab(notification.title?.includes('مزود') ? 'providers' : 'students');
     } else if (notification.orderId) setActiveTab('conversations');
@@ -446,6 +449,13 @@ export default function AdminDashboard() {
             active={activeTab === 'completed'}
             onClick={() => setActiveTab('completed')}
           />
+          <NavItem
+            icon={<FaCreditCard />}
+            label="المدفوعات"
+            badge={pendingPaymentsCount}
+            active={activeTab === 'payments'}
+            onClick={() => setActiveTab('payments')}
+          />
           <NavItem icon={<FaUsers />} label="إدارة الطلاب" active={activeTab === 'students'} onClick={() => setActiveTab('students')} />
           <NavItem icon={<FaUserTie />} label="إدارة مزودي الخدمة" active={activeTab === 'providers'} onClick={() => setActiveTab('providers')} />
           <NavItem
@@ -575,6 +585,8 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
+
+          {activeTab === 'payments' && <PaymentsPanel onChanged={refreshAll} />}
 
           {activeTab === 'finance' && (
             <div className="h-full overflow-y-auto custom-scrollbar space-y-6">
@@ -1549,7 +1561,13 @@ const OrderRow = ({ order, compact, expanded, onToggleFiles, onApprove, onReturn
             <p>{Number(order.price || 0).toLocaleString('ar-IQ')} د.ع</p>
             <p className="text-green-700">مزود {Number(order.providerAmount || 0).toLocaleString('ar-IQ')}</p>
             <p className="text-amber-700">عمولة {Number(order.commissionAmount || 0).toLocaleString('ar-IQ')}</p>
-            {order.paymentStatus === 'reserved' && <p className="text-blue-700">ماستركارد · ملتزم بالشراء</p>}
+            {['reserved', 'collected'].includes(order.paymentStatus) ? (
+              <p className="text-green-700">مدفوع ✓</p>
+            ) : order.paymentStatus === 'review' ? (
+              <p className="text-blue-700">إيصال قيد المراجعة</p>
+            ) : (
+              <p className="text-red-600">غير مدفوع</p>
+            )}
           </td>
         )}
         <td className="px-4 py-4">
