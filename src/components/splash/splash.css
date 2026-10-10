@@ -1,0 +1,189 @@
+/*
+ * Welcome splash — "the academic horizon".
+ * Flat colours only: a horizon line, a rising sun, a ruler that fills in,
+ * then the whole sheet lifts away to reveal the site.
+ */
+
+.ah-splash {
+  --ah-blue: #1a5276;
+  --ah-gold: #e9c176;
+  --ah-paper: #f5f1e8;
+  --ah-mist: #a9c3d4;
+
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ah-blue);
+  color: var(--ah-paper);
+  overflow: hidden;
+  transform: translateY(0);
+}
+
+/* The gold edge that trails the sheet as it lifts off */
+.ah-splash::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--ah-gold);
+  opacity: 0;
+}
+
+.ah-splash__stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(620px, 86vw);
+  text-align: center;
+}
+
+/* ── Sun ─────────────────────────────────────────────── */
+.ah-splash__sky {
+  position: relative;
+  width: 220px;
+  height: 110px;
+  overflow: hidden;
+}
+
+.ah-splash__ring,
+.ah-splash__sun {
+  position: absolute;
+  border-radius: 50%;
+}
+
+.ah-splash__ring {
+  top: 0;
+  left: 0;
+  width: 220px;
+  height: 220px;
+  border: 1px solid rgba(233, 193, 118, 0.45);
+  animation: ah-rise 1.5s cubic-bezier(0.2, 0.7, 0.2, 1) 0.55s backwards;
+}
+
+.ah-splash__sun {
+  top: 20px;
+  left: 20px;
+  width: 180px;
+  height: 180px;
+  background: var(--ah-gold);
+  animation: ah-rise 1.3s cubic-bezier(0.2, 0.7, 0.2, 1) 0.35s backwards;
+}
+
+/* ── Horizon + ruler ─────────────────────────────────── */
+.ah-splash__horizon {
+  width: 100%;
+  height: 1px;
+  background: rgba(233, 193, 118, 0.75);
+  animation: ah-draw 1s cubic-bezier(0.65, 0, 0.35, 1) 0.15s backwards;
+}
+
+.ah-splash__scale {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  height: 16px;
+}
+
+.ah-splash__tick {
+  display: block;
+  width: 1px;
+  height: 6px;
+  background: rgba(245, 241, 232, 0.5);
+  transform-origin: top;
+  animation: ah-tick 0.35s ease-out backwards;
+  animation-delay: calc(0.6s + var(--i) * 28ms);
+}
+
+.ah-splash__tick--major {
+  height: 14px;
+  background: rgba(245, 241, 232, 0.85);
+}
+
+/* ── Words ───────────────────────────────────────────── */
+.ah-splash__greeting,
+.ah-splash__name,
+.ah-splash__tagline {
+  margin: 0;
+  animation: ah-word 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+}
+
+.ah-splash__greeting {
+  margin-top: 40px;
+  font-family: 'Tajawal', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ah-gold);
+  animation-delay: 1.1s;
+}
+
+.ah-splash__name {
+  margin-top: 6px;
+  font-family: 'Amiri', 'Noto Naskh Arabic', serif;
+  font-size: clamp(42px, 9vw, 76px);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--ah-paper);
+  animation-delay: 1.3s;
+}
+
+.ah-splash__tagline {
+  margin-top: 10px;
+  font-family: 'Tajawal', sans-serif;
+  font-size: 15px;
+  color: var(--ah-mist);
+  animation-delay: 1.8s;
+}
+
+/* ── Leaving: words fade, the sheet lifts ────────────── */
+.ah-splash.is-leaving {
+  animation: ah-lift 0.95s cubic-bezier(0.76, 0, 0.24, 1) 0.3s forwards;
+}
+
+.ah-splash.is-leaving::after {
+  opacity: 1;
+}
+
+.ah-splash.is-leaving .ah-splash__stage {
+  animation: ah-fade-out 0.4s ease-in forwards;
+}
+
+/* ── Keyframes ───────────────────────────────────────── */
+@keyframes ah-rise {
+  from { transform: translateY(100%); }
+}
+
+@keyframes ah-draw {
+  from { transform: scaleX(0); }
+}
+
+@keyframes ah-tick {
+  from { transform: scaleY(0); }
+}
+
+@keyframes ah-word {
+  from { opacity: 0; transform: translateY(12px); }
+}
+
+@keyframes ah-lift {
+  to { transform: translateY(-100%); }
+}
+
+@keyframes ah-fade-out {
+  to { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ah-splash *,
+  .ah-splash::after {
+    animation: none !important;
+  }
+
+  .ah-splash.is-leaving {
+    animation: ah-fade-out 0.4s ease-in forwards !important;
+  }
+}

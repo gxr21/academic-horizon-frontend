@@ -12,10 +12,20 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@700&display=swap" rel="stylesheet"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>الأفق الأكاديمي | Academic Horizon</title>
   </head>
   <body>
+    <!-- Same blue as the welcome screen, so there is no white flash while the app downloads -->
+    <div id="boot" style="position:fixed;inset:0;z-index:99998;background:#1A5276"></div>
+    <script>
+      try {
+        if (sessionStorage.getItem('ah_splash_seen') && !/[?&]splash/.test(location.search)) {
+          document.getElementById('boot').remove();
+        }
+      } catch (e) {}
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

@@ -25,6 +25,7 @@ import HelpPage from "./pages/help/help"
 import PrivacyPage from "./pages/legal/privacy"
 import TermsPage from "./pages/legal/terms"
 import NotFoundPage from "./pages/legal/not-found"
+import Splash from "./components/splash/Splash"
 // مكون للتحقق من صفحة landing - إذا كان المستخدم مسجل دخول يتم توجيهه للصفحة المناسبة
 const PublicRoute = ({ children }) => {
   const { isAuthenticated, user } = useAuth();
@@ -113,6 +114,7 @@ function App() {
   return (
     <QueryProvider>
       <AuthProvider>
+        <Splash />
         <NotificationProvider>
           <OrderProvider>
             <BrowserRouter>
