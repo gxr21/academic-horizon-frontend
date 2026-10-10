@@ -153,7 +153,13 @@ export default function AdminDashboard() {
   const [commissionInput, setCommissionInput] = useState('');
   const [revealedCard, setRevealedCard] = useState(null);
 
-  const providers = users.filter((u) => u.role === 'provider');
+  const allProviders = users.filter((u) => u.role === 'provider');
+  const providers = allProviders.filter((u) => (u.approvalStatus || 'approved') === 'approved');
+  // Self-registered providers; people who never confirmed their email are not shown
+  const providerRequests = allProviders.filter(
+    (u) => (u.approvalStatus || 'approved') !== 'approved' && u.emailVerified
+  );
+  const pendingProviderRequests = providerRequests.filter((u) => u.approvalStatus === 'pending');
   const students = users.filter((u) => u.role === 'student');
   const awaitingOrders = finishedOrders.filter((o) => o.status === 'completed');
 
@@ -320,6 +326,20 @@ export default function AdminDashboard() {
     const ok = await runAction(() => adminAPI.updateUser(editProvider.id, payload), 'فشل تحديث بيانات المزود');
     if (ok) setEditProvider(null);
     return ok;
+  };
+
+  const handleProviderDecision = (provider, status) => {
+    let note = '';
+    if (status === 'rejected') {
+      note = window.prompt(`سبب رفض "${provider.name}" (سيصله في البريد، اختياري):`, '');
+      if (note === null) return;
+    } else if (!window.confirm(`الموافقة على "${provider.name}" كمزود خدمة؟ سيتمكن من الدخول فوراً.`)) {
+      return;
+    }
+    runAction(
+      () => adminAPI.decideProvider(provider.id, { status, note: (note || '').trim() }),
+      'فشل حفظ القرار'
+    );
   };
 
   const handleReviewProfileChange = (request, status) => {
@@ -662,6 +682,63 @@ export default function AdminDashboard() {
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
+                {providerRequests.length > 0 && (
+                  <div className="mb-6 rounded-2xl border border-orange-100 bg-orange-50/50 p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-black text-gray-800">طلبات الانضمام كمزود خدمة</h4>
+                      <span className="text-xs font-bold text-orange-700">
+                        {pendingProviderRequests.length} بانتظار القرار
+                      </span>
+                    </div>
+                    <div className="space-y-3">
+                      {providerRequests.map((req) => (
+                        <div key={req.id} className="bg-white rounded-xl border border-gray-100 p-4">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <p className="font-bold text-gray-800">{req.name}</p>
+                              <p className="text-sm text-gray-500" dir="ltr">{req.email}</p>
+                              {req.phone && <p className="text-sm text-gray-500" dir="ltr">{req.phone}</p>}
+                              <p className="text-xs text-gray-400 mt-1">
+                                بريده مؤكد · طلب في {formatDateTime(req.createdAt)}
+                              </p>
+                            </div>
+                            {req.approvalStatus === 'rejected' ? (
+                              <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">مرفوض</span>
+                            ) : (
+                              <span className="px-3 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-800">قيد المراجعة</span>
+                            )}
+                          </div>
+                          {req.bio && <p className="text-sm text-gray-600 mt-3 leading-relaxed">{req.bio}</p>}
+                          {req.approvalStatus === 'rejected' && req.approvalNote && (
+                            <p className="text-xs text-gray-500 mt-2">سبب الرفض: {req.approvalNote}</p>
+                          )}
+                          <div className="flex flex-wrap gap-2 mt-3">
+                            <button
+                              onClick={() => handleProviderDecision(req, 'approved')}
+                              className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-bold"
+                            >
+                              موافقة
+                            </button>
+                            {req.approvalStatus === 'pending' && (
+                              <button
+                                onClick={() => handleProviderDecision(req, 'rejected')}
+                                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-bold"
+                              >
+                                رفض
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeleteUser(req.id, req.name)}
+                              className="px-4 py-2 bg-red-50 text-red-600 rounded-xl text-sm font-bold"
+                            >
+                              حذف
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {showProviderForm && (
                   <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 mb-6 max-w-xl">
                     <ProviderForm onSubmit={handleCreateProvider} />

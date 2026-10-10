@@ -20,7 +20,10 @@ function RegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailHint, setEmailHint] = useState('');
   const [pendingEmail, setPendingEmail] = useState(null);
-  const role = 'student';
+  const [role, setRole] = useState('student');
+  const [phone, setPhone] = useState('');
+  const [bio, setBio] = useState('');
+  const isProvider = role === 'provider';
   const navigate = useNavigate();
   const { register, loginWithGoogle } = useAuth();
   const handleGoogle = async (credential) => {
@@ -50,12 +53,22 @@ function RegisterPage() {
       setError(emailProblem);
       return;
     }
+    if (isProvider && phone.trim().length < 8) {
+      setError('رقم الهاتف مطلوب لمزود الخدمة');
+      return;
+    }
     setIsSubmitting(true);
-    const result = await register(name, email.trim(), password, role);
+    const result = await register(
+      name,
+      email.trim(),
+      password,
+      role,
+      isProvider ? { phone: phone.trim(), bio: bio.trim() } : {}
+    );
     setIsSubmitting(false);
     if (result.success) {
       // الحساب ينتظر تأكيد البريد قبل أول دخول
-      setPendingEmail({ address: result.email, sent: result.emailSent });
+      setPendingEmail({ address: result.email, sent: result.emailSent, needsApproval: result.needsApproval });
     } else {
       setError(result.error);
     }
@@ -78,11 +91,16 @@ function RegisterPage() {
               <p className="text-gray-600 leading-relaxed">
                 أرسلنا رابط التفعيل إلى
                 <span className="block font-bold text-academic-blue my-1" dir="ltr">{pendingEmail.address}</span>
-                افتح الرسالة واضغط الرابط لتفعيل حسابك. الرابط صالح 24 ساعة.
+                افتح الرسالة واضغط الرابط لتأكيد بريدك. الرابط صالح 24 ساعة.
               </p>
             ) : (
               <p className="text-red-600 leading-relaxed text-sm">
                 تم إنشاء حسابك لكن تعذر إرسال رسالة التفعيل إلى {pendingEmail.address}. اضغط «إعادة الإرسال» بعد قليل.
+              </p>
+            )}
+            {pendingEmail.needsApproval && (
+              <p className="text-sm text-orange-700 bg-orange-50 border border-orange-100 rounded-xl px-4 py-3 leading-relaxed">
+                بعد تأكيد البريد تراجع الإدارة طلبك كمزود خدمة، ولن تتمكن من الدخول قبل موافقتها. سنراسلك بالقرار.
               </p>
             )}
             <p className="text-xs text-gray-400">لم تجدها؟ تفقد صندوق الرسائل غير المرغوبة (Spam).</p>
@@ -100,7 +118,28 @@ function RegisterPage() {
           <div className="w-full max-w-sm">
             <h1 className="text-4xl font-bold text-academic-blue mb-2 text-right">إنشاء حساب جديد</h1>
             <p className="text-gray-500 mb-8 text-right text-sm">ابدأ رحلتك الأكاديمية معنا اليوم</p>
-            <p className="text-academic-blue font-bold text-right mb-4">إنشاء حساب طالب</p>
+            <div className="flex gap-2 bg-gray-100 rounded-xl p-1 mb-2" role="tablist" aria-label="نوع الحساب">
+              {[
+                { value: 'student', label: 'طالب' },
+                { value: 'provider', label: 'مقدم خدمة' },
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="tab"
+                  aria-selected={role === option.value}
+                  onClick={() => {
+                    setRole(option.value);
+                    setError('');
+                  }}
+                  className={`flex-1 py-2 rounded-lg text-sm font-bold transition ${
+                    role === option.value ? 'bg-academic-blue text-white shadow' : 'text-academic-blue'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
 
             <div className="flex flex-col gap-4 border-b border-gray-300 pb-4 mb-4">
               <Input 
@@ -135,6 +174,26 @@ function RegisterPage() {
               {emailHint && (
                 <p role="alert" className="text-red-500 text-xs text-right -mt-2">{emailHint}</p>
               )}
+              {isProvider && (
+                <>
+                  <Input
+                    type='tel'
+                    placeholder="رقم الهاتف"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    autoComplete="tel"
+                    className="w-full border border-gray-300 rounded-lg p-3  mt-4 text-right"
+                  />
+                  <textarea
+                    placeholder="نبذة عن خبرتك وتخصصك (اختياري)"
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    maxLength={1000}
+                    rows={3}
+                    className="w-full border border-gray-300 rounded-lg p-3 mt-4 text-right resize-none"
+                  />
+                </>
+              )}
               <Input
                 type='password'
                 placeholder="كلمة المرور"
@@ -160,7 +219,9 @@ function RegisterPage() {
                 }
               />
               <p className="text-gray-500 text-sm text-right mt-2">
-                التسجيل متاح للطلاب فقط. مزود الخدمة يتم تفعيله عبر إيميل معتمد.
+                {isProvider
+                  ? 'بعد تأكيد بريدك تراجع الإدارة طلبك، ولا يمكنك الدخول قبل موافقتها.'
+                  : 'ستصلك رسالة على بريدك لتأكيده وتفعيل حسابك.'}
               </p>
               {/* يمكنك إضافة بقية الحقول هنا بنفس الطريقة */}
               {error && (
@@ -172,12 +233,17 @@ function RegisterPage() {
                 className="bg-academic-blue text-white w-full py-3 rounded-xl mt-4 font-bold hover:opacity-90 transition shadow-lg disabled:opacity-60">
                 {isSubmitting ? 'جاري التحقق من البريد...' : 'إنشاء حساب'}
               </Button>
-              <div className="flex items-center gap-3 mt-1" dir="rtl">
-                <span className="flex-1 h-px bg-gray-200" />
-                <span className="text-sm text-gray-400">أو</span>
-                <span className="flex-1 h-px bg-gray-200" />
-              </div>
-              <GoogleSignInButton text="signup_with" width={384} onCredential={handleGoogle} />
+              {/* Google creates student accounts only, so providers use the form */}
+              {!isProvider && (
+                <>
+                  <div className="flex items-center gap-3 mt-1" dir="rtl">
+                    <span className="flex-1 h-px bg-gray-200" />
+                    <span className="text-sm text-gray-400">أو</span>
+                    <span className="flex-1 h-px bg-gray-200" />
+                  </div>
+                  <GoogleSignInButton text="signup_with" width={384} onCredential={handleGoogle} />
+                </>
+              )}
             </div>
             <p className="mt-8 text-center text-gray-500 text-sm">
               لديك حساب بالفعل؟ <Link to="/login" className="text-academic-blue font-bold">تسجيل الدخول</Link>

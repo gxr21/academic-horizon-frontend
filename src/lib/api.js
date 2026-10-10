@@ -173,6 +173,7 @@ export const adminAPI = {
   getUsers: (params) => api.get('/api/admin/users', { params }),
   deleteUser: (userId) => api.delete(`/api/admin/users/${userId}`),
   createProvider: (data) => api.post('/api/admin/providers', data),
+  decideProvider: (userId, data) => api.patch(`/api/admin/providers/${userId}/decision`, data),
   // Orders (admin view). `status` can be a comma-separated list, e.g. "completed,delivered"
   getAllOrders: (params) => api.get('/api/admin/orders', { params }),
   // Conversations (admin view)

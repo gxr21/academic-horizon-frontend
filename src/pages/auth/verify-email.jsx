@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
+import { FaCheckCircle, FaClock, FaExclamationTriangle } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 
 const academicBlue = '#1A5276';
@@ -39,7 +39,7 @@ export default function VerifyEmailPage() {
   const { verifyEmail } = useAuth();
   const token = useMemo(() => (params.get('token') || '').trim(), [params]);
 
-  // checking | done | invalid
+  // checking | done | pending | invalid
   const [stage, setStage] = useState(token ? 'checking' : 'invalid');
   const [reason, setReason] = useState(token ? '' : 'رابط التفعيل ناقص. اطلب رابطاً جديداً من صفحة تسجيل الدخول.');
   const [account, setAccount] = useState(null);
@@ -51,7 +51,9 @@ export default function VerifyEmailPage() {
     if (!token || started.current) return;
     started.current = true;
     verifyEmail(token).then((result) => {
-      if (result.success) {
+      if (result.success && result.pendingApproval) {
+        setStage('pending');
+      } else if (result.success) {
         setAccount(result.user);
         setStage('done');
       } else {
@@ -77,6 +79,31 @@ export default function VerifyEmailPage() {
         <div className="space-y-3 animate-pulse" aria-busy="true">
           <div className="h-4 w-2/3 bg-gray-100 rounded" />
           <div className="h-12 bg-gray-100 rounded-xl" />
+        </div>
+      </Shell>
+    );
+  }
+
+  if (stage === 'pending') {
+    return (
+      <Shell title="تم تأكيد بريدك" subtitle="بقيت موافقة الإدارة على حسابك كمزود خدمة.">
+        <div className="text-center space-y-5">
+          <div className="mx-auto w-16 h-16 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center text-3xl">
+            <FaClock />
+          </div>
+          <div className="space-y-1">
+            <p className="font-bold text-academic-blue">طلبك قيد المراجعة</p>
+            <p className="text-gray-600 leading-relaxed">
+              ستراجع الإدارة طلبك، وسنرسل لك رسالة على بريدك فور اتخاذ القرار. لا يمكنك الدخول قبل الموافقة.
+            </p>
+          </div>
+          <Link
+            to="/login"
+            className="block w-full py-3 rounded-xl text-white font-bold"
+            style={{ backgroundColor: academicBlue }}
+          >
+            العودة لتسجيل الدخول
+          </Link>
         </div>
       </Shell>
     );

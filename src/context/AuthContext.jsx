@@ -102,6 +102,12 @@ export const AuthProvider = ({ children }) => {
   const verifyEmail = useCallback(async (token) => {
     try {
       const response = await authAPI.verifyEmail({ token });
+
+      // Providers confirm their email first, then wait for the admin: no session yet
+      if (response.data?.pendingApproval) {
+        return { success: true, pendingApproval: true, message: response.data.message };
+      }
+
       const { token: jwt, user: userData } = response.data;
 
       setAuthSession(jwt, userData);
@@ -121,7 +127,7 @@ export const AuthProvider = ({ children }) => {
   /**
    * Register — creates the account; a confirmation email must be opened before login.
    */
-  const register = useCallback(async (name, email, password, role = 'student') => {
+  const register = useCallback(async (name, email, password, role = 'student', extra = {}) => {
     try {
       if (!name || !email || !password) {
         return { success: false, error: 'جميع الحقول مطلوبة' };
@@ -131,12 +137,13 @@ export const AuthProvider = ({ children }) => {
         return { success: false, error: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل' };
       }
 
-      const response = await authAPI.register({ name, email, password, role });
+      const response = await authAPI.register({ name, email, password, role, ...extra });
 
       // The account stays locked until the emailed link is opened, so there is no session yet
       return {
         success: true,
         requiresVerification: !!response.data?.requiresVerification,
+        needsApproval: !!response.data?.needsApproval,
         email: response.data?.email || email,
         emailSent: response.data?.emailSent !== false,
       };
